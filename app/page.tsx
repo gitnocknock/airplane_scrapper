@@ -5,7 +5,7 @@ export default function Home() {
       <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent border-2 border-black"> Flight Guard AI</h1>
     </div>
 
-  <div className="bg-blue-950 border-2 border-black h-96 flex flex-col gap-6 p-6 items-center justify-center">
+  <div className="bg-blue-950 border-2 border-black h-max flex flex-col gap-6 p-6 items-center justify-center">
 
   <div className="bg-cyan-950/80 rounded-lg h-32 w-96 p-5 border border-cyan-500/30 flex items-center justify-center">
     <div className="text-white">
@@ -29,6 +29,45 @@ export default function Home() {
   </div>
 
 </div>
+
+<div className="grid grid-cols-3 gap-0 h-screen">
+  <div className="bg-gray-800 w-full h-full border-r border-gray-700">
+    <h1 className="text-cyan-400 text-2xl font-bold pl-3 pt-2 pb-5">AI Agents</h1>
+  <div className="grid grid-rows-3 gap-3 place-items-center">
+     <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      Ayusma
+     </div>
+      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      Chakre
+     </div>
+      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      I LOVE YOU
+      </div>
+    </div>
+  </div>
+
+  <div className="bg-gray-900 w-full h-full">
+  </div>
+
+  <div className="bg-gray-800 w-full h-full border-l border-gray-700">
+    <h1 className="text-cyan-400 text-2xl font-bold pl-3 pt-2 pb-5">Smart Insights</h1>
+     <div className="grid grid-rows-3 gap-3 place-items-center">
+    <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      Ayusma
+  </div>
+    <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      Chakre
+  </div>
+  <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      I LOVE YOU
+  </div>
+  </div>
+  </div>
+
+</div>
+
+
+
 
   </main>
   )
