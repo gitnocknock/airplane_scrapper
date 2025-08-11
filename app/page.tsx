@@ -32,7 +32,13 @@ export default function Home() {
 
 <div className="grid grid-cols-3 gap-0 h-screen">
   <div className="bg-gray-800 w-full h-full border-r border-gray-700">
-    <h1 className="text-cyan-400 text-2xl font-bold pl-3 pt-2 pb-5">AI Agents</h1>
+    <div className="flex justify-between pb-10 px-10">
+    <h1 className="text-cyan-400 text-2xl font-bold pl-3 pt-2">AI Agents</h1>
+   <div className="bg-cyan-400 w-32 h-16 rounded-lg font-bold text-white text-xl flex items-center justify-center">
+  Deploy New
+  </div>
+
+  </div>
   <div className="grid grid-rows-3 gap-3 place-items-center">
      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white font-bold p-4 text-center">
       Ayusma
@@ -81,6 +87,8 @@ export default function Home() {
   )
 }
 
+
+// fix line 37 formatting later
 
 
 
