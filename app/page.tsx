@@ -34,35 +34,43 @@ export default function Home() {
   <div className="bg-gray-800 w-full h-full border-r border-gray-700">
     <h1 className="text-cyan-400 text-2xl font-bold pl-3 pt-2 pb-5">AI Agents</h1>
   <div className="grid grid-rows-3 gap-3 place-items-center">
-     <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+     <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white font-bold p-4 text-center">
       Ayusma
      </div>
-      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white font-bold p-4 text-center">
       Chakre
      </div>
-      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white font-bold p-4 text-center">
       I LOVE YOU
       </div>
     </div>
   </div>
 
-  <div className="bg-gray-900 w-full h-full">
+<div className="bg-gray-900 w-full h-full">
+  <div className="grid grid-rows-2 gap-5 place-items-center pt-5">
+    <div className="bg-cyan-950/50 h-96 w-70 rounded-lg border border-gray-700">
+    <h1 className="text-white text-2xl font-bold pl-3 pt-2 pb-5 text-center">Live Flight Map</h1>
   </div>
+  <div className="bg-cyan-950/50 h-96 w-70 rounded-lg border border-gray-700">
+    <h1 className="text-white text-2xl font-bold pl-3 pt-2 pb-5 text-center">Agent Activity Feed</h1>
+  </div>
+  </div>
+</div>
 
-  <div className="bg-gray-800 w-full h-full border-l border-gray-700">
-    <h1 className="text-cyan-400 text-2xl font-bold pl-3 pt-2 pb-5">Smart Insights</h1>
-     <div className="grid grid-rows-3 gap-3 place-items-center">
-    <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
-      Ayusma
-  </div>
-    <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
+<div className="bg-gray-800 w-full h-full border-l border-gray-700">
+  <h1 className="text-cyan-400 text-2xl font-bold pl-3 pt-2 pb-5">Smart Insights</h1>
+    <div className="grid grid-rows-3 gap-3 place-items-center">
+      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-blue-500/30 text-blue-400 font-bold p-4 text-center">
+        Ayusma
+      </div>
+      <div className="bg-gray-700 w-40 h-32 rounded-lg border border-cyan-500/30 text-cyan-400 p-4 text-center">
       Chakre
+      </div>
+  <div className="bg-gray-700 w-40 h-32 rounded-lg border border-purple-500/30 text-purple-400 p-4 text-center">
+    I LOVE YOU
+    </div>
   </div>
-  <div className="bg-gray-700 w-40 h-32 rounded-lg border border-gray-600 text-white p-4 flex items-center justify-center">
-      I LOVE YOU
-  </div>
-  </div>
-  </div>
+</div>
 
 </div>
 
