@@ -6,18 +6,40 @@ Update agent status and assigned flights
 Track which agents are monitoring which OpenSky flight IDs 
 */
 
-import { mutation } from './_generated/server'
+import { mutation, action } from './_generated/server'
 import { v } from "convex/values";
+import { api } from "./_generated/api";
 
-
-// This sends flight assignments to your Python agents
 export const assignFlightToAgent = mutation({
+  args: { 
+    flightNumber: v.string(), 
+    userId: v.string(),
+    delayThreshold: v.number(),
+    date: v.string()
+  },
+  handler: async (ctx, { flightNumber, userId, delayThreshold, date }) => {
+    await ctx.db.insert("userFlights", { 
+      flightNumber, 
+      userId,
+      date,
+      delayThreshold,
+      isActive: true,
+      createdAt: Date.now()
+    });
+  }
+});
+
+export const notifyPythonAgent = action({
   args: { flightNumber: v.string(), userId: v.string() },
   handler: async (ctx, { flightNumber, userId }) => {
-    // Store in database
-    await ctx.db.insert("userFlights", { flightNumber, userId });
+    await ctx.runMutation(api.agents.assignFlightToAgent, {
+      flightNumber,
+      userId,
+      delayThreshold: 15, 
+      date: new Date().toISOString().split('T')[0]
+    });
     
-    // Send HTTP request to Python agent
+    // Then send HTTP request to Python agent
     await fetch("http://localhost:8000/assign-flight", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -25,5 +47,3 @@ export const assignFlightToAgent = mutation({
     });
   }
 });
-
-// USED TO PING THE AI AGENT
