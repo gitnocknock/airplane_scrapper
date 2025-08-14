@@ -7,10 +7,10 @@ Query flights by route/region */
 
 
 // convex/flights.ts
-import { mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-export const updateFlightStatus = mutation({
+export const getFlightStatus = mutation({
   args: { 
     flightNumber: v.string(), 
     status: v.string(), 
@@ -20,4 +20,15 @@ export const updateFlightStatus = mutation({
     // Your update logic here
     // (We'll fill this in later)
   },
+});
+
+
+export const getUserFlights = query({
+    args: { userId: v.string() },
+    handler: async (ctx, args) => {
+        return await ctx.db
+            .query("userFlights")
+            .filter(q => q.eq(q.field("userId"), args.userId))
+            .collect();
+    }
 });

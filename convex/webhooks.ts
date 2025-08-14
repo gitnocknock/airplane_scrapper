@@ -16,7 +16,7 @@ http.route({
     const { flightNumber, status, delay } = await request.json();
     
     // Update flight status in database
-    await ctx.runMutation(api.flights.updateFlightStatus, {
+    await ctx.runMutation(api.flights.getFlightStatus, {
       flightNumber,
       status, 
       delay
