@@ -19,8 +19,9 @@ export const logDisruptions = mutation({
 });
 
 export const storeBackup = mutation({
+    // add ai shit to this one to find a backup route
     args: {},
-    handler: async(convexToJson, args) => {
-        
+    handler: async(ctx, args) => {
+
     }
 });
