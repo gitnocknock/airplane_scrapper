@@ -19,7 +19,7 @@ export const logDisruptions = mutation({
 });
 
 export const storeBackup = mutation({
-    // add ai shit to this one to find a backup route
+    // do this shit later w api key of openAi
     args: {},
     handler: async(ctx, args) => {
 
