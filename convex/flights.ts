@@ -19,7 +19,7 @@ export const updateFlightStatus = mutation({
   handler: async (ctx, args) => {
     const existingFlight = await ctx.db
       .query("flights")
-      .filter(q => q.eq(q.field("flightNumber"), args.flightNumber))
+      .filter(q => q.eq(q.field("flightNumber"), args.flightNumber)) // use withIndex instead fix this
       .first();
     
     if (existingFlight) {
@@ -44,7 +44,7 @@ export const getFlightStatus = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("flights")
-      .filter(q => q.eq(q.field("flightNumber"), args.flightNumber))
+      .filter(q => q.eq(q.field("flightNumber"), args.flightNumber)) // use index shit
       .first();
   }
 });

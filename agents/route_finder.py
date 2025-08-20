@@ -2,12 +2,11 @@
 
 
 # understand this shit and what it is trying to do
-# Whats the difference between disruptions and the route finder?
+# Whats the difference between disruptions and the route finder? 
 # Add an API key for fetch AI and areoData box api 
 
 from flask import Flask, request, jsonify
-import request
-import os
+import requests
 
 
 
@@ -22,6 +21,7 @@ def handle_flight_assignment():
     
     # Your logic here to:
     # 1. Create flight_agent for monitoring
+    
     # 2. Store assignment info
     # 3. Start monitoring process
     

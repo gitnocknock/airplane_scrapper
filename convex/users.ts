@@ -47,8 +47,8 @@ export const removeUserFlight = mutation({
     handler: async(ctx, args) => {  
         const userFlight = await ctx.db
             .query("userFlights")  
-            .filter(q => q.and(
-                q.eq(q.field("userId"), args.userId),
+            .filter( // use index shit
+                q => q.and(q.eq(q.field("userId"), args.userId),
                 q.eq(q.field("flightNumber"), args.flightNumber)
             ))
             .first();
