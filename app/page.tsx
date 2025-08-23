@@ -1,10 +1,18 @@
 "use client";
 import { useState } from 'react';
 
+  interface Agent {
+  id: string;
+  name: string;
+  flight: string;
+}
+
 export default function Home() {
-  const [agents, setAgents] = useState([]); 
+
+
+  const [agents, setAgents] = useState<Agent[]>([]); 
   const [showModal, setShowModal] = useState(false);
-  const [flightNumber, setFlightNumber] = useState('');
+  const [flightNumber, setFlightNumber] = useState(''); // TODO: Add flight number validation
   const [agentName, setAgentName] = useState('');
 
   const handleDeployAgent = () => {
@@ -15,7 +23,7 @@ export default function Home() {
         flight: flightNumber.trim().toUpperCase()
       };
 
-      setAgents([...agents, newAgent]);
+      setAgents([...agents,newAgent]);
 
       setFlightNumber('');
       setAgentName('');
