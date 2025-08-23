@@ -9,7 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "convex": "^1.25.4",
+    "convex": "^1.26.1",
     "next": "15.4.6",
     "puppeteer": "^24.16.0",
     "react": "19.1.0",

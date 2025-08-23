@@ -111,7 +111,6 @@ def find_alternative_routes():
     else:
         flight_data_context = f"Here are real available flights: {json.dumps(real_flights, indent=2)}"
     
-    # Step 2: Create AI prompt with real data
     prompt = f"""
 You are an intelligent travel agent powered by ASI:One. The passenger's flight {flight_number} from {origin} to {destination} on {date} has been disrupted.
 
@@ -119,13 +118,14 @@ Here is real-time flight data:
 {flight_data_context}
 
 Your task:
-1. Use real flights whenever possible
-2. If none meet criteria, generate plausible alternatives
-3. Max 2 layovers
-4. Time flexibility: ±4 hours
-5. Avoid {flight_number}
-6. Prefer airlines like AA, DL, UA, BA, EK, QR, etc.
-7. Minimize connection times (< 2h domestic, < 3h international)
+    1. Find real flight
+    2. If none meet criteria, generate real plausible alternatives
+    3. Max 2 layovers
+    4. Time flexibility: ±4 hours
+    5. Avoid {flight_number}
+    6. Prefer airlines like AA, DL, UA, BA, EK, QR, etc.
+    7. Minimize connection times (< 5h domestic, < 5h international)
+    8. If you can't find a flight let the user know that there aren't any available flights. 
 
 Return valid JSON with:
 - route_id
@@ -148,7 +148,6 @@ Output format:
 
 
     try:
-        # Call ASI:One AI
         response = requests.post(
             ASI_ONE_ENDPOINT,
             headers={

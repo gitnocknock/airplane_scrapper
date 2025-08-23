@@ -14,7 +14,10 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as agents from "../agents.js";
+import type * as disruptions from "../disruptions.js";
 import type * as flights from "../flights.js";
+import type * as routes from "../routes.js";
+import type * as users from "../users.js";
 import type * as webhooks from "../webhooks.js";
 
 /**
@@ -27,7 +30,10 @@ import type * as webhooks from "../webhooks.js";
  */
 declare const fullApi: ApiFromModules<{
   agents: typeof agents;
+  disruptions: typeof disruptions;
   flights: typeof flights;
+  routes: typeof routes;
+  users: typeof users;
   webhooks: typeof webhooks;
 }>;
 export declare const api: FilterApi<
