@@ -2,12 +2,7 @@
 import { useState } from 'react';
 
 export default function Home() {
-  const [agents, setAgents] = useState([
-    { id: 'Agent-001', name: 'Ayusma', flight: 'AA1234' },
-    { id: 'Agent-002', name: 'Chakre', flight: 'DL5678' },
-    { id: 'Agent-003', name: 'I LOVE YOU', flight: 'UA9012' }
-  ]);
-  
+  const [agents, setAgents] = useState([]); 
   const [showModal, setShowModal] = useState(false);
   const [flightNumber, setFlightNumber] = useState('');
   const [agentName, setAgentName] = useState('');
@@ -19,8 +14,9 @@ export default function Home() {
         name: agentName.trim(),
         flight: flightNumber.trim().toUpperCase()
       };
-      
+
       setAgents([...agents, newAgent]);
+
       setFlightNumber('');
       setAgentName('');
       setShowModal(false);
@@ -41,21 +37,21 @@ export default function Home() {
       <div className="bg-blue-950 border-2 border-black h-max flex flex-col gap-6 p-6 items-center justify-center">
         <div className="bg-cyan-950/80 rounded-lg h-32 w-96 p-5 border border-cyan-500/30 flex items-center justify-center">
           <div className="text-white text-center">
-            <p className="text-3xl font-bold text-cyan-400">07</p>
+            <p className="text-3xl font-bold text-cyan-400">{agents.length.toString().padStart(2, '0')}</p>
             <p className="text-gray-300">Active Agents</p>
           </div>
         </div>
 
         <div className="bg-cyan-950/80 rounded-lg h-32 w-96 p-5 border border-blue-500/30 flex items-center justify-center">
           <div className="text-white text-center">
-            <p className="text-3xl font-bold text-blue-400">03</p>
+            <p className="text-3xl font-bold text-blue-400">{agents.length.toString().padStart(2, '0')}</p>
             <p className="text-gray-300">Flights Monitored</p>
           </div>
         </div>
 
         <div className="bg-cyan-950/80 rounded-lg h-32 w-96 p-5 border border-red-500/30 flex items-center justify-center">
           <div className="text-white text-center">
-            <p className="text-3xl font-bold text-red-400">2005</p>
+            <p className="text-3xl font-bold text-red-400">00</p>
             <p className="text-gray-300">Active Disruptions</p>
           </div>
         </div>
@@ -68,19 +64,27 @@ export default function Home() {
             <h1 className="text-cyan-400 text-2xl font-bold">AI Agents</h1>
             <button 
               onClick={() => setShowModal(true)}
-              className="bg-cyan-400 hover:bg-cyan-500 w-32 h-12 rounded-lg font-bold text-white text-lg flex items-center justify-center transition-colors duration-200 hover:cursor-pointer"
+              className="bg-cyan-400 hover:bg-cyan-500 w-32 h-12 rounded-lg font-bold text-white text-lg flex items-center justify-center transition-colors duration-200"
             >
               Deploy New
             </button>
           </div>
           
-          <div className="grid grid-rows-3 gap-4 place-items-center px-6">
-            {agents.map((agent, index) => (
-              <div key={agent.id} className="bg-gray-700 w-48 h-32 rounded-lg border border-gray-600 text-white font-bold flex flex-col items-center justify-center">
-                <div className="text-lg">{agent.name}</div>
-                <div className="text-sm text-green-300 font-normal">Monitoring: {agent.flight}</div>
+          <div className="flex flex-col gap-4 px-6">
+            {agents.length === 0 ? (
+              <div className="text-gray-400 text-center py-12">
+                No agents deployed yet.<br />
+                Click "Deploy New" to create your first agent.
               </div>
-            ))}
+            ) : (
+              agents.map((agent) => (
+                <div key={agent.id} className="bg-gray-700 w-full h-32 rounded-lg border border-gray-600 text-white font-bold flex flex-col items-center justify-center">
+                  <div className="text-lg">{agent.name}</div>
+                  <div className="text-sm text-green-300 font-normal">Monitoring: {agent.flight}</div>
+                  <div className="text-xs text-gray-400 font-normal">{agent.id}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
@@ -101,13 +105,13 @@ export default function Home() {
             
             <div className="grid grid-rows-3 gap-4 place-items-center">
               <div className="bg-gray-700 w-48 h-32 rounded-lg border border-blue-500/30 text-blue-400 font-bold flex items-center justify-center">
-                Ayusma
+                Flight Analytics
               </div>
               <div className="bg-gray-700 w-48 h-32 rounded-lg border border-cyan-500/30 text-cyan-400 font-bold flex items-center justify-center">
-                Chakre
+                Route Optimization
               </div>
               <div className="bg-gray-700 w-48 h-32 rounded-lg border border-purple-500/30 text-purple-400 font-bold flex items-center justify-center">
-                I LOVE YOU
+                Disruption Alerts
               </div>
             </div>
           </div>
@@ -151,7 +155,7 @@ export default function Home() {
                   setFlightNumber('');
                   setAgentName('');
                 }}
-                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors hover:cursor-pointer"
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -175,10 +179,9 @@ export default function Home() {
 This seems very static first thing tmrw get rid of the place holder stuff and focus on
 interactivity of the website.
 Do Flight map for last and focus on:
-If user clicks on deply -> Creates Agent -> Allow user to moniter flight or find alternative ->
+If user clicks on deploy -> Creates Agent -> Allow user to find alternative ->
 create box and make it look good -> show that on the active live map 
-+> if the user clicks on flight disrputed then give it alternatives on the left col
-+> if the user doesn't click on flight disrupted then don't give alternative 
  - call convex to the front end for deploy agent
  - understand the code as well
+ - Check if it is an actual flight and if it isn't throw an error
 */
