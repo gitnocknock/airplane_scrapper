@@ -13,7 +13,9 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+// Hardcode for now to fix build, we'll make it dynamic later
+const CONVEX_URL = process.env.NEXT_PUBLIC_CONVEX_URL || "https://tangible-guineapig-688.convex.cloud";
+const convex = new ConvexReactClient(CONVEX_URL);
 
 export default function RootLayout({
   children,

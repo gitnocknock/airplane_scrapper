@@ -4,9 +4,14 @@ from flask import Flask, request, jsonify
 import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
+from flask_cors import CORS
 
-# Load environment variables from .env.local
-load_dotenv('.env.local')
+app = Flask(__name__)
+CORS(app)  # allows requests from any origin
+
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -18,240 +23,85 @@ AERO_DATA_API_KEY = os.getenv('AERO_DATA_API_KEY')
 ASI_ONE_ENDPOINT = "https://api.asi1.ai/v1/chat/completions"
 MODEL_NAME = "asi1-mini"
 
-def get_real_flights(origin_iata, destination_iata):
-    """Fetch departing flights from origin and filter by destination"""
-    try:
-        url = f"https://aerodatabox.p.rapidapi.com/flights/airports/iata/{origin_iata}"
+# Store active flight monitors
+active_monitors = {}
 
-        headers = {
-            "X-RapidAPI-Key": AERO_DATA_API_KEY,
-            "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
-        }
-
-        params = {
-            "offsetMinutes": -120,
-            "durationMinutes": 720,
-            "withLeg": True,
-            "direction": "Both",
-            "withCancelled": True,
-            "withCodeshared": True,
-            "withCargo": True,
-            "withPrivate": True,
-            "withLocation": False,
-            "max": 100
-        }
-
-        response = requests.get(url, headers=headers, params=params, timeout=10)
-
-        if response.status_code == 200:
-            flights_data = response.json()
-            relevant_flights = []
-
-            for flight in flights_data.get("flights", []):
-                legs = flight.get("legs", [])
-                if not legs:
-                    continue
-                last_leg = legs[-1]
-                if last_leg.get("destination", {}).get("iata") == destination_iata:
-                    relevant_flights.append({
-                        "flight_number": legs[0].get("number", "N/A"),
-                        "airline": flight.get("airline", {}).get("name", "Unknown"),
-                        "departure_time": legs[0].get("departure", {}).get("scheduledTimeLocal", "N/A"),
-                        "arrival_time": last_leg.get("arrival", {}).get("scheduledTimeLocal", "N/A"),
-                        "aircraft": last_leg.get("aircraft", {}).get("model", "N/A"),
-                        "stops": len(legs) - 1
-                    })
-
-            return relevant_flights[:10]
-        else:
-            print(f"AeroDataBox API error: {response.status_code} - {response.text}")
-            return []
-
-    except Exception as e:
-        print(f"Error fetching real flights: {str(e)}")
-        return []
-
-
-def store_routes_in_convex(user_id, flight_number, date, routes):
-    """Store alternative routes in Convex database"""
-    try:
-        convex_response = requests.post(
-            f"{CONVEX_DEPLOYMENT_URL}/api/mutations",
-            headers={"Content-Type": "application/json"},
-            json={
-                "path": "routes:storeAlternativeRoutes",
-                "args": {
-                    "userId": user_id,
-                    "originalFlightNumber": flight_number,
-                    "disruptionDate": date,
-                    "routes": routes
-                }
-            },
-            timeout=10
-        )
+class FlightMonitor:
+    def __init__(self, flight_number, user_id):
+        self.flight_number = flight_number
+        self.user_id = user_id
+        self.is_active = True
         
-        if convex_response.status_code == 200:
-            return True 
-        else:
-            print(f"Convex error: {convex_response.text}")
-            return False
+    def get_flight_status(self):
+        """Get flight status from AeroDataBox API"""
+        try:
+            today = datetime.now().strftime('%Y-%m-%d')
+            url = f"https://aerodatabox.p.rapidapi.com/flights/number/{self.flight_number}"
             
-    except Exception as e:
-        print(f"Convex storage error: {str(e)}")
-        return False
-
-@app.route('/find-alternative-routes', methods=['POST'])
-def find_alternative_routes():
-    data = request.json
-    origin = data.get('origin')  
-    destination = data.get('destination')  
-    flight_number = data.get('flightNumber')
-    date = data.get('date')
-    user_id = data.get('userId')
-    
-    if not all([origin, destination, date, flight_number]):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    # Step 1: Get real flight data from AeroDataBox
-    print(f"Fetching flights from {origin} to {destination}...")
-    real_flights = get_real_flights(origin, destination, date)
-    
-    if not real_flights:
-        print("No real flights found, using AI-generated data as fallback")
-        flight_data_context = "No real flight data available. Generate realistic alternatives."
-    else:
-        flight_data_context = f"Here are real available flights: {json.dumps(real_flights, indent=2)}"
-    
-    prompt = f"""
-You are an intelligent travel agent powered by ASI:One. The passenger's flight {flight_number} from {origin} to {destination} on {date} has been disrupted.
-
-Here is real-time flight data:
-{flight_data_context}
-
-Your task:
-    1. Find real flight
-    2. If none meet criteria, generate real plausible alternatives
-    3. Max 2 layovers
-    4. Time flexibility: ±4 hours
-    5. Avoid {flight_number}
-    6. Prefer airlines like AA, DL, UA, BA, EK, QR, etc.
-    7. Minimize connection times (< 5h domestic, < 5h international)
-    8. If you can't find a flight let the user know that there aren't any available flights. 
-
-Return valid JSON with:
-- route_id
-- flights: list with flight, from, to, departure, arrival
-- total_duration (e.g., "7h 45m")
-- reasoning: concise explanation
-
-Output format:
-[
-  {{
-    "route_id": 1,
-    "flights": [
-      {{"flight": "AA100", "from": "JFK", "to": "ATL", "departure": "2025-06-10T08:00", "arrival": "2025-06-10T10:30"}}
-    ],
-    "total_duration": "8h 30m",
-    "reasoning": "Shortest travel time with reliable carrier."
-  }}
-]
-"""
-
-
-    try:
-        response = requests.post(
-            ASI_ONE_ENDPOINT,
-            headers={
-                "Authorization": f"Bearer {FETCH_AI_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": MODEL_NAME,
-                "messages": [
-                    {"role": "system", "content": "You are a helpful travel routing agent with access to real flight data."},
-                    {"role": "user", "content": prompt}
-                ],
-                "temperature": 0.4,  
-                "max_tokens": 1500,  
-                "response_format": {"type": "json_object"}
-            },
-            timeout=30
-        )
-
-        if response.status_code == 200:
-            result = response.json()
-            routes_text = result["choices"][0]["message"]["content"]
-            routes = json.loads(routes_text)
+            headers = {
+                'X-RapidAPI-Key': AERO_DATA_API_KEY,
+                'X-RapidAPI-Host': 'aerodatabox.p.rapidapi.com'
+            }
             
-            convex_success = False
-            if user_id:
-                convex_success = store_routes_in_convex(user_id, flight_number, date, routes)
+            params = {'date': today}
+            response = requests.get(url, headers=headers, params=params, timeout=10)
             
-            return jsonify({
-                "routes": routes,
-                "stored_in_db": bool(user_id and convex_success),
-                "used_real_data": len(real_flights) > 0,
-                "real_flights_found": len(real_flights)
-            })
-        else:
-            return jsonify({
-                "error": "Failed to get response from ASI:One",
-                "details": response.text
-            }), response.status_code
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/assign-flight', methods=['POST'])
-def handle_flight_assignment():
-    data = request.json
-    flight_number = data.get('flightNumber')
-    user_id = data.get('userId')
+            if response.status_code == 200:
+                flight_data = response.json()
+                if flight_data and len(flight_data) > 0:
+                    flight = flight_data[0]
+                    departure = flight.get('departure', {})
+                    
+                    # Calculate delay
+                    delay_minutes = 0
+                    status = "scheduled"
+                    
+                    if departure.get('actualTimeLocal') and departure.get('scheduledTimeLocal'):
+                        scheduled = datetime.fromisoformat(departure['scheduledTimeLocal'].replace('Z', '+00:00'))
+                        actual = datetime.fromisoformat(departure['actualTimeLocal'].replace('Z', '+00:00'))
+                        delay_minutes = max(0, int((actual - scheduled).total_seconds() / 60))
+                        
+                        if delay_minutes > 15:
+                            status = "delayed"
+                        else:
+                            status = "on_time"
+                    
+                    return {
+                        "flightNumber": self.flight_number,
+                        "status": status,
+                        "delay": delay_minutes,
+                        "timestamp": int(datetime.now().timestamp() * 1000)
+                    }
+            return None
+        except Exception as e:
+            print(f"Error getting flight status: {e}")
+            return None
     
-    return jsonify({
-        "status": "assigned",
-        "userId": user_id,
-        "assignedFlight": flight_number
-    })
-
-@app.route('/get-user-routes/<user_id>', methods=['GET'])
-def get_user_routes(user_id):
-    """Get all alternative routes for a user"""
-    try:
-        convex_response = requests.post(
-            f"{CONVEX_DEPLOYMENT_URL}/api/queries",
-            headers={"Content-Type": "application/json"},
-            json={
-                "path": "routes:getUserRoutes", 
-                "args": {"userId": user_id}
-            },
-            timeout=10
-        )
+    def monitor_flight(self):
+        """Monitor flight and send updates to Convex"""
+        print(f"Starting to monitor flight {self.flight_number}")
         
-        if convex_response.status_code == 200:
-            routes = convex_response.json()
-            return jsonify({"routes": routes})
-        else:
-            return jsonify({"error": "Failed to fetch routes"}), 500
-            
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == '__main__':
-    import os
-import requests
-from flask import Flask, request, jsonify
-import json
-from datetime import datetime, timedelta
-
-app = Flask(__name__)
-
-FETCH_AI_API_KEY = os.getenv('FETCH_AI_API_KEY')
-CONVEX_DEPLOYMENT_URL = os.getenv('CONVEX_DEPLOYMENT_URL')  
-AERO_DATA_API_KEY = os.getenv('AERO_DATA_API_KEY') 
-
-ASI_ONE_ENDPOINT = "https://api.asi1.ai/v1/chat/completions"
-MODEL_NAME = "asi1-mini"
+        while self.is_active:
+            try:
+                flight_data = self.get_flight_status()
+                
+                if flight_data:
+                    # Send to Convex webhook
+                    webhook_url = f"{CONVEX_DEPLOYMENT_URL}/agent-update"
+                    requests.post(webhook_url, json=flight_data, timeout=10)
+                    print(f"Updated {self.flight_number}: {flight_data['status']}")
+                
+                # Wait 5 minutes before next check
+                import time
+                time.sleep(300)
+                
+            except Exception as e:
+                print(f"Error in monitoring loop: {e}")
+                import time
+                time.sleep(60)
+    
+    def stop(self):
+        self.is_active = False
 
 def get_real_flights(origin_iata, destination_iata, date):
     """Fetch departing flights from origin and filter by destination"""
@@ -301,33 +151,32 @@ def get_real_flights(origin_iata, destination_iata, date):
         print(f"Error fetching real flights: {str(e)}")
         return []
 
-def store_routes_in_convex(user_id, flight_number, date, routes):
-    """Store alternative routes in Convex database"""
-    try:
-        convex_response = requests.post(
-            f"{CONVEX_DEPLOYMENT_URL}/api/mutations",
-            headers={"Content-Type": "application/json"},
-            json={
-                "path": "routes:storeAlternativeRoutes",
-                "args": {
-                    "userId": user_id,
-                    "originalFlightNumber": flight_number,
-                    "disruptionDate": date,
-                    "routes": routes
-                }
-            },
-            timeout=10
-        )
-        
-        if convex_response.status_code == 200:
-            return True 
-        else:
-            print(f"Convex error: {convex_response.text}")
-            return False
-            
-    except Exception as e:
-        print(f"Convex storage error: {str(e)}")
-        return False
+@app.route('/assign-flight', methods=['POST'])
+def handle_flight_assignment():
+    data = request.json
+    flight_number = data.get('flightNumber')
+    user_id = data.get('userId')
+    
+    if not flight_number or not user_id:
+        return jsonify({"error": "Missing flightNumber or userId"}), 400
+    
+    # Create and start flight monitor
+    monitor = FlightMonitor(flight_number, user_id)
+    monitor_key = f"{flight_number}_{user_id}"
+    active_monitors[monitor_key] = monitor
+    
+    # Start monitoring in background thread
+    import threading
+    monitor_thread = threading.Thread(target=monitor.monitor_flight)
+    monitor_thread.daemon = True
+    monitor_thread.start()
+    
+    return jsonify({
+        "status": "assigned",
+        "message": f"Now monitoring {flight_number}",
+        "userId": user_id,
+        "assignedFlight": flight_number
+    })
 
 @app.route('/find-alternative-routes', methods=['POST'])
 def find_alternative_routes():
@@ -341,39 +190,28 @@ def find_alternative_routes():
     if not all([origin, destination, date, flight_number]):
         return jsonify({"error": "Missing required fields"}), 400
     
-    # Step 1: Get real flight data from AeroDataBox
+    # Get real flight data from AeroDataBox
     print(f"Fetching flights from {origin} to {destination}...")
     real_flights = get_real_flights(origin, destination, date)
     
     if not real_flights:
-        print("No real flights found, using AI-generated data as fallback")
         flight_data_context = "No real flight data available. Generate realistic alternatives."
     else:
         flight_data_context = f"Here are real available flights: {json.dumps(real_flights, indent=2)}"
     
     prompt = f"""
-You are an intelligent travel agent powered by ASI:One. The passenger's flight {flight_number} from {origin} to {destination} on {date} has been disrupted.
+You are an intelligent travel agent. The passenger's flight {flight_number} from {origin} to {destination} on {date} has been disrupted.
 
-Here is real-time flight data:
 {flight_data_context}
 
-Your task:
-    1. Find real flight
-    2. If none meet criteria, generate real plausible alternatives
-    3. Max 2 layovers
-    4. Time flexibility: ±4 hours
-    5. Avoid {flight_number}
-    6. Prefer airlines like AA, DL, UA, BA, EK, QR, etc.
-    7. Minimize connection times (< 5h domestic, < 5h international)
-    8. If you can't find a flight let the user know that there aren't any available flights. 
+Find alternative flights with:
+1. Real flights preferred
+2. Max 2 layovers
+3. Time flexibility: ±4 hours
+4. Avoid {flight_number}
+5. Prefer major airlines
 
-Return valid JSON with:
-- route_id
-- flights: list with flight, from, to, departure, arrival
-- total_duration (e.g., "7h 45m")
-- reasoning: concise explanation
-
-Output format:
+Return valid JSON:
 [
   {{
     "route_id": 1,
@@ -386,7 +224,6 @@ Output format:
 ]
 """
 
-
     try:
         response = requests.post(
             ASI_ONE_ENDPOINT,
@@ -397,11 +234,11 @@ Output format:
             json={
                 "model": MODEL_NAME,
                 "messages": [
-                    {"role": "system", "content": "You are a helpful travel routing agent with access to real flight data."},
+                    {"role": "system", "content": "You are a helpful travel routing agent."},
                     {"role": "user", "content": prompt}
                 ],
-                "temperature": 0.4,  
-                "max_tokens": 1500,  
+                "temperature": 0.4,
+                "max_tokens": 1500,
                 "response_format": {"type": "json_object"}
             },
             timeout=30
@@ -412,74 +249,33 @@ Output format:
             routes_text = result["choices"][0]["message"]["content"]
             routes = json.loads(routes_text)
             
-            convex_success = False
-            if user_id:
-                convex_success = store_routes_in_convex(user_id, flight_number, date, routes)
-            
             return jsonify({
                 "routes": routes,
-                "stored_in_db": bool(user_id and convex_success),
                 "used_real_data": len(real_flights) > 0,
                 "real_flights_found": len(real_flights)
             })
         else:
             return jsonify({
-                "error": "Failed to get response from ASI:One",
+                "error": "Failed to get response from AI",
                 "details": response.text
             }), response.status_code
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/assign-flight', methods=['POST'])
-def handle_flight_assignment():
-    data = request.json
-    flight_number = data.get('flightNumber')
-    user_id = data.get('userId')
-    
+@app.route('/status', methods=['GET'])
+def get_status():
     return jsonify({
-        "status": "assigned",
-        "userId": user_id,
-        "assignedFlight": flight_number
+        "active_monitors": len(active_monitors),
+        "monitored_flights": list(active_monitors.keys()),
+        "server_status": "running"
     })
 
-@app.route('/get-user-routes/<user_id>', methods=['GET'])
-def get_user_routes(user_id):
-    """Get all alternative routes for a user"""
-    try:
-        convex_response = requests.post(
-            f"{CONVEX_DEPLOYMENT_URL}/api/queries",
-            headers={"Content-Type": "application/json"},
-            json={
-                "path": "routes:getUserRoutes", 
-                "args": {"userId": user_id}
-            },
-            timeout=10
-        )
-        
-        if convex_response.status_code == 200:
-            routes = convex_response.json()
-            return jsonify({"routes": routes})
-        else:
-            return jsonify({"error": "Failed to fetch routes"}), 500
-            
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
 if __name__ == '__main__':
-    # Test the route finder internally
-    with app.test_client() as client:
-        response = client.post('/find-alternative-routes', json={
-            "origin": "JFK",
-            "destination": "LAX",
-            "flightNumber": "AA100",
-            "date": "2025-09-01",
-            "userId": "123"
-        })
-        print("Test Response JSON:", response.json)
-
-    # Start Flask server on a free port
-    app.run(port=5071, debug=True)
-
-
+    print("Starting Flight Guard AI Agent...")
+    print(f"API Keys configured:")
+    print(f"  Fetch AI: {'yes' if FETCH_AI_API_KEY else 'nah fam'}")
+    print(f"  AeroData: {'yes' if AERO_DATA_API_KEY else 'nah fam'}")
+    print(f"  Convex URL: {'yes' if CONVEX_DEPLOYMENT_URL else 'nah fam'}")
     
+    app.run(port=5071, debug=True)

@@ -32,6 +32,7 @@ export const assignFlightToAgent = mutation({
 export const notifyPythonAgent = action({
   args: { flightNumber: v.string(), userId: v.string() },
   handler: async (ctx, { flightNumber, userId }) => {
+    // First store in database
     await ctx.runMutation(api.agents.assignFlightToAgent, {
       flightNumber,
       userId,
@@ -39,11 +40,31 @@ export const notifyPythonAgent = action({
       date: new Date().toISOString().split('T')[0]
     });
     
-    // Then send HTTP request to Python agent
-    await fetch("https://49eb21ed8d28.ngrok-free.app/assign-flight", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ flightNumber, userId })
-    });
+    // Your Railway deployment URL
+    const PYTHON_AGENT_URL = "airplanescrapper-airplae-stuff.up.railway.app";
+    
+    try {
+      const response = await fetch(`${PYTHON_AGENT_URL}/assign-flight`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          // Add ngrok bypass header if needed
+          "ngrok-skip-browser-warning": "true"
+        },
+        body: JSON.stringify({ flightNumber, userId })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Python agent responded with status: ${response.status}`);
+      }
+      
+      console.log("Successfully notified Python agent");
+      return { success: true, message: "Agent deployed successfully" };
+      
+    } catch (error) {
+      console.error("Failed to notify Python agent:", error);
+      // Don't throw - we already saved to database
+      return { success: false, message: "Agent saved but notification failed" };
+    }
   }
 });
