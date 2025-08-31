@@ -40,7 +40,7 @@ export const notifyPythonAgent = action({
     });
     
     // Then send HTTP request to Python agent
-    await fetch("http://localhost:8000/assign-flight", {
+    await fetch("https://49eb21ed8d28.ngrok-free.app/assign-flight", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ flightNumber, userId })

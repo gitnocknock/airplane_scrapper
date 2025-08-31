@@ -1,36 +1,54 @@
 "use client";
 import { useState } from 'react';
+import { useAction, useQuery } from 'convex/react';
+import { api } from '../convex/_generated/api';
 
-  interface Agent {
+interface Agent {
   id: string;
   name: string;
   flight: string;
 }
 
 export default function Home() {
-
-
   const [agents, setAgents] = useState<Agent[]>([]); 
   const [showModal, setShowModal] = useState(false);
-  const [flightNumber, setFlightNumber] = useState(''); // TODO: Add flight number validation
+  const [flightNumber, setFlightNumber] = useState('');
   const [agentName, setAgentName] = useState('');
+  const [isDeploying, setIsDeploying] = useState(false);
 
-  const handleDeployAgent = () => {
+  // Connect to Convex - use useAction for actions
+  const assignFlightAction = useAction(api.agents.notifyPythonAgent);
+  const userFlights = useQuery(api.flights.getUserFlights, { userId: 'demo-user' }) || [];
+
+  const handleDeployAgent = async () => {
     if (flightNumber.trim() && agentName.trim()) {
-      const newAgent = {
-        id: `Agent-${String(agents.length + 1).padStart(3, '0')}`,
-        name: agentName.trim(),
-        flight: flightNumber.trim().toUpperCase()
-      };
-
-      setAgents([...agents,newAgent]);
-
-      setFlightNumber('');
-      setAgentName('');
-      setShowModal(false);
+      setIsDeploying(true);
       
-      // TODO: Call your Convex function here
-      // await assignFlightToAgent({ flightNumber: newAgent.flight, userId: 'current-user' });
+      try {
+        // Call Convex action to deploy agent
+        await assignFlightAction({ 
+          flightNumber: flightNumber.trim().toUpperCase(), 
+          userId: 'demo-user' 
+        });
+
+        const newAgent = {
+          id: `Agent-${String(agents.length + 1).padStart(3, '0')}`,
+          name: agentName.trim(),
+          flight: flightNumber.trim().toUpperCase()
+        };
+
+        setAgents([...agents, newAgent]);
+        setFlightNumber('');
+        setAgentName('');
+        setShowModal(false);
+        
+        console.log(`Agent deployed for flight ${newAgent.flight}`);
+      } catch (error) {
+        console.error('Failed to deploy agent:', error);
+        alert('Failed to deploy agent. Please try again.');
+      } finally {
+        setIsDeploying(false);
+      }
     }
   };
 
@@ -52,7 +70,7 @@ export default function Home() {
 
         <div className="bg-cyan-950/80 rounded-lg h-32 w-96 p-5 border border-blue-500/30 flex items-center justify-center">
           <div className="text-white text-center">
-            <p className="text-3xl font-bold text-blue-400">{agents.length.toString().padStart(2, '0')}</p>
+            <p className="text-3xl font-bold text-blue-400">{userFlights.length.toString().padStart(2, '0')}</p>
             <p className="text-gray-300">Flights Monitored</p>
           </div>
         </div>
@@ -100,6 +118,21 @@ export default function Home() {
           <div className="grid grid-rows-2 gap-5 place-items-center p-5 h-full">
             <div className="bg-cyan-950/50 h-full w-full max-w-2xl rounded-lg border border-gray-700">
               <h1 className="text-white text-2xl font-bold text-center p-4">Live Flight Map</h1>
+              <div className="p-4">
+                {userFlights.length > 0 ? (
+                  <div className="space-y-2">
+                    {userFlights.map((flight, index) => (
+                      <div key={index} className="bg-gray-800 p-3 rounded border border-gray-600">
+                        <div className="text-white font-semibold">{flight.flightNumber}</div>
+                        <div className="text-gray-300 text-sm">Date: {flight.date}</div>
+                        <div className="text-cyan-400 text-sm">Delay Threshold: {flight.delayThreshold}min</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-center">No flights being monitored</div>
+                )}
+              </div>
             </div>
             <div className="bg-cyan-950/50 h-full w-full max-w-2xl rounded-lg border border-gray-700">
               <h1 className="text-white text-2xl font-bold text-center p-4">Agent Activity Feed</h1>
@@ -169,10 +202,10 @@ export default function Home() {
               </button>
               <button
                 onClick={handleDeployAgent}
-                disabled={!flightNumber.trim() || !agentName.trim()}
+                disabled={!flightNumber.trim() || !agentName.trim() || isDeploying}
                 className="px-4 py-2 bg-cyan-500 hover:bg-cyan-600 text-white rounded-lg transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed"
               >
-                Deploy Agent
+                {isDeploying ? 'Deploying...' : 'Deploy Agent'}
               </button>
             </div>
           </div>
@@ -181,15 +214,3 @@ export default function Home() {
     </main>
   );
 }
-
-
-/*
-This seems very static first thing tmrw get rid of the place holder stuff and focus on
-interactivity of the website.
-Do Flight map for last and focus on:
-If user clicks on deploy -> Creates Agent -> Allow user to find alternative ->
-create box and make it look good -> show that on the active live map 
- - call convex to the front end for deploy agent
- - understand the code as well
- - Check if it is an actual flight and if it isn't throw an error
-*/
